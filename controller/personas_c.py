@@ -62,6 +62,9 @@ class UsuarioController:
             ]
         else:
             return []
+        
+    def existe_usuario(self, nombre_usuario: str) -> bool:
+        return self.usuario_model.existe_usuario(nombre_usuario)
 
 
 class PacienteController:

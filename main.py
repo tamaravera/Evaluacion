@@ -1,9 +1,12 @@
+import json
+import os
+from datetime import date
 import inspect
 import sys
 import bcrypt
 from datetime import date, datetime
 from typing import Any, Optional, Dict
-
+from utils.validaciones import normalizar_telefono
 try:
     from config.db_config import conexion_oracle, validar_tablas
 except Exception:
@@ -510,6 +513,53 @@ def conectar_bd() -> conexion_oracle:
     db.conectar()
     return db
 
+def cargar_usuarios_desde_json(ruta_json: str, usuario_ctrl):
+    if not os.path.exists(ruta_json):
+        print(f"[ERROR]: Archivo no encontrado: {ruta_json}")
+        return
+
+    with open(ruta_json, "r", encoding="utf-8") as f:
+        usuarios = json.load(f)
+
+    for u in usuarios:
+        username = u.get("username")
+
+        try:
+            if usuario_ctrl.existe_usuario(username):
+                print(f"[SKIP]: {username} ya está insertado")
+                continue
+
+            telefono = normalizar_telefono(u.get("phone", ""))
+
+            nombre_completo = u.get("name", "")
+            partes = nombre_completo.split(" ", 1)
+
+            nombre = partes[0]
+            apellido = partes[1] if len(partes) > 1 else ""
+
+            clave_hash = hacer_hash_clave("1234")
+
+            ok = usuario_ctrl.registrar_usuario(
+                u.get("id"),
+                username,
+                clave_hash,
+                nombre,
+                apellido,
+                date(2000, 1, 1),
+                telefono,
+                u.get("email"),
+                "paciente"
+            )
+
+            if ok:
+                print(f"[OK]: {username} insertado correctamente")
+            else:
+                print(f"[WARN]: {username} no se pudo insertar")
+
+        except Exception as e:
+            print(f"[ERROR]: {username} omitido -> {e}")
+
+
 
 def main():
     db = conectar_bd()
@@ -539,6 +589,7 @@ def main():
             print("5) Gestionar Consultas")
             print("6) Gestionar Agenda")
             print("7) Listar usuarios / pacientes / médicos / administradores")
+            print("8) Cargar usuarios desde JSON")
             print("0) Salir")
             opt = input("Elija opción: ").strip()
 
@@ -657,6 +708,11 @@ def main():
                             print(admins)
                 except Exception as e:
                     print("[ERROR]:", e)
+
+            elif opt == "8":
+                ruta = input("Ruta del archivo JSON (ej: usuarios.json): ").strip()
+                cargar_usuarios_desde_json(ruta, usuario_ctrl)
+
 
             elif opt == "0":
                 print("Saliendo...")

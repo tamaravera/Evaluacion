@@ -220,7 +220,17 @@ class UsuarioModel:
 
     def eliminar(self, id_usuario: int) -> bool:
         return self.eliminar_item(id_usuario)
-
+    
+    def existe_usuario(self, nombre_usuario: str) -> bool:
+        cursor = self.db.obtener_cursor()
+        try:
+            cursor.execute(
+                "SELECT 1 FROM tv_usuario WHERE nombre_usuario = :1",
+                (nombre_usuario,)
+            )
+            return cursor.fetchone() is not None
+        finally:
+            cursor.close()
 
 class PacienteModel(UsuarioModel):
 
